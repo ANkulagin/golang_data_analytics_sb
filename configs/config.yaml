@@ -1,0 +1,3 @@
+src_dir: "/home/ankul/obsidian/_notes/daily"
+dest_dir: "/home/ankul/_html/daily"
+log_level: "info"
