@@ -7,13 +7,6 @@ import (
 	"strings"
 )
 
-type FrontMatter struct {
-	Date   string   `yaml:"date"`
-	Author string   `yaml:"author"`
-	Tags   []string `yaml:"tags"`
-	Closed bool     `yaml:"closed"`
-}
-
 type Converter struct{}
 
 func NewConverter() *Converter {

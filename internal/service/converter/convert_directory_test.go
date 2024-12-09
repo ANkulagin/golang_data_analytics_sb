@@ -129,5 +129,36 @@ func TestConverterDirectory_WalkError(t *testing.T) {
 }
 
 func TestConverterDirectory_ConvertFileError(t *testing.T) {
-	// TODO После реалзиации конвертера
+	sut := NewConverter()
+	content := `---
+date: 2024-12-09
+author: ANkulagin
+tags:
+  - "#daily"
+  - "#notes
+closed: false
+---
+# Заголовок
+Контент
+`
+	expectedErrMsg := "ошибка при разборе FrontMatter: не удалось распарсить FrontMatter:"
+
+	srcDir, err := os.MkdirTemp("", "src_dir")
+	require.NoError(t, err)
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(srcDir)
+
+	destDir := filepath.Join(os.TempDir(), "dest_dir")
+	defer func(path string) {
+		_ = os.RemoveAll(path)
+	}(destDir)
+
+	mdFile := filepath.Join(srcDir, "test.md")
+	err = os.WriteFile(mdFile, []byte(content), 0644)
+	require.NoError(t, err)
+
+	err = sut.ConvertDirectory(srcDir, destDir)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), expectedErrMsg)
 }
