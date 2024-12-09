@@ -3,6 +3,7 @@ package converter
 import (
 	"bytes"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"os"
 )
 
@@ -18,8 +19,10 @@ func (c *Converter) ConvertFile(filePath, srcDir, destDir string) error {
 	if err != nil {
 		return fmt.Errorf("не удалось прочитать файл: %v", err)
 	}
-	_, _, _ = c.splitFrontMatter(content)
-
+	_, _, err = c.splitFrontMatter(content)
+	if err != nil {
+		return fmt.Errorf("ошибка при разборе FrontMatter: %v", err)
+	}
 	return nil
 }
 
@@ -27,9 +30,15 @@ func (c *Converter) splitFrontMatter(content []byte) (*FrontMatter, []byte, erro
 	delimiter := []byte("---")
 
 	parts := bytes.SplitN(content, delimiter, 3)
-	if len(parts) != 3 {
+	if len(parts) < 3 {
 		return &FrontMatter{}, content, nil
 	}
 
-	return &FrontMatter{}, nil, nil
+	var fm FrontMatter
+	if err := yaml.Unmarshal(parts[1], &fm); err != nil {
+		return nil, nil, fmt.Errorf("не удалось распарсить FrontMatter: %v", err)
+	}
+
+	return &fm, parts[2], nil
+
 }
