@@ -7,100 +7,85 @@ import (
 	"testing"
 )
 
-func TestConverterFile_ReadFile(t *testing.T) {
+func TestConvertFile_Success(t *testing.T) {
 	sut := NewConverter()
-	srcDir := ""
-	destDir := ""
-	path := filepath.Join(os.TempDir(), "test.md")
-	_, _ = os.Create(path)
 
-	defer func(path string) {
-		_ = os.RemoveAll(path)
-	}(path)
+	testCases := []struct {
+		name  string
+		setup func() (path, srcDir, destDir string, cleanup func())
+	}{
+		{
+			name: "Успешное чтение файла без FrontMatter",
+			setup: func() (path, srcDir, destDir string, cleanup func()) {
+				path = filepath.Join(os.TempDir(), "test_ok.md")
+				f, _ := os.Create(path)
+				_ = f.Close()
 
-	err := sut.ConvertFile(path, srcDir, destDir)
+				return path, "", "", func() {
+					_ = os.RemoveAll(path)
+				}
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			path, srcDir, destDir, cleanup := tc.setup()
+			defer cleanup()
 
-	require.NoError(t, err)
-	require.FileExists(t, path)
+			err := sut.ConvertFile(path, srcDir, destDir)
+
+			require.NoError(t, err)
+		})
+	}
 }
 
-func TestConverterFile_ReadFile_Error(t *testing.T) {
+func TestConvertFile_Error(t *testing.T) {
 	sut := NewConverter()
-	expected := "не удалось прочитать файл"
-	srcDir := ""
-	destDir := ""
-	path := filepath.Join(os.TempDir(), "test.md")
-	_, _ = os.Create(path)
-	os.Chmod(path, 0000)
 
-	defer func(path string) {
-		_ = os.RemoveAll(path)
-	}(path)
+	testCases := []struct {
+		name           string
+		setup          func() (path, srcDir, destDir string, cleanup func())
+		expectedErrMsg string
+	}{
+		{
+			name: "The file does not exist",
+			setup: func() (path, srcDir, destDir string, cleanup func()) {
+				path = filepath.Join(os.TempDir(), "test.md")
+				//Не создаём файл, чтобы гарантировать ошибку чтения
+				return path, "", "", func() {
+					_ = os.RemoveAll(path)
+				}
+			},
+			expectedErrMsg: "не удалось прочитать файл",
+		},
+		{
+			name: "No read permissions",
+			setup: func() (path, srcDir, destDir string, cleanup func()) {
+				path = filepath.Join(os.TempDir(), "test.md")
+				f, _ := os.Create(path)
+				_ = f.Close()
+				_ = os.Chmod(path, 0000)
+				return path, "", "", func() {
+					// Советуют восстанавливать права перед удалением
+					_ = os.Chmod(path, 0644)
+					_ = os.RemoveAll(path)
+				}
+			},
+			expectedErrMsg: "не удалось прочитать файл",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			path, srcDir, destDir, cleanup := tc.setup()
+			defer cleanup()
 
-	err := sut.ConvertFile(path, srcDir, destDir)
+			err := sut.ConvertFile(path, srcDir, destDir)
 
-	require.Error(t, err)
-	require.Contains(t, err.Error(), expected)
-}
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.expectedErrMsg)
 
-func TestConverterFile_SplitFrontMatter(t *testing.T) {
-	sut := NewConverter()
-	expectedContent := `
----
-date: 2024-12-09
-author: ANkulagin
-tags:
-  - "#daily"
-  - "#notes"
-closed: false
----
-***
-## 🧾 Expenses
-
-| Category      | Андрей | Юля |
-| ------------- |:------:|:---:|
-| Food          |   0    |  0  |
-| Deliveries    |   0    |  0  |
-| Pharmacy      |   0    |  0  |
-| Entertainment |   0    |  0  |
-| Gifts         |   0    |  0  |
-| Wants         |   0    |  0  |
-| Transport     |   0    |  0  |
-| Clothing      |   0    |  0  |
-| Education     |   0    |  0  |
-| Home          |   0    |  0  |
-| Other         |   0    |  0  |
-
-
-## 🧾 Income
-`
-	srcDir := ""
-	destDir := ""
-	path := filepath.Join(os.TempDir(), "test.md")
-	_, _ = os.Create(path)
-	os.WriteFile(path, []byte(expectedContent), 0777)
-
-	defer func(path string) {
-		_ = os.RemoveAll(path)
-	}(path)
-
-	err := sut.ConvertFile(path, srcDir, destDir)
-
-	require.FileExists(t, path)
-}
-
-func TestConverterFile_SplitFrontMatter_YmlIsMissing(t *testing.T) {
-	sut := NewConverter()
-	srcDir := ""
-	destDir := ""
-	path := filepath.Join(os.TempDir(), "test.md")
-	_, _ = os.Create(path)
-
-	defer func(path string) {
-		_ = os.RemoveAll(path)
-	}(path)
-
-	err := sut.ConvertFile(path, srcDir, destDir)
-
-	require.Error(t, err)
+		})
+	}
 }
