@@ -1,0 +1,49 @@
+classDiagram
+%% Классы и их атрибуты/методы с описаниями
+
+    class Main {
+<<entry point>>
++main()
+%% Основная функция, инициирующая процесс конвертации
+}
+
+class Config {
+<<configuration loader>>
+-SrcDir: string
+-DestDir: string
+-LogLevel: string
++LoadConfig(configPath: string) *Config
+%% Загружает конфигурацию из файла YAML
+}
+
+class Converter {
+<<service>>
++ConvertDirectory(srcDir: string, destDir: string) error
+-СonvertFile(filePath: string, srcDir: string, destDir: string) error
+-splitFrontMatter(content: bytes) (*FrontMatter, []byte, error)
+%% Конвертирует Markdown файлы в HTML
+}
+
+class FrontMatter {
+<<data structure>>
+-Date: string
+-Author: string
+-Tags: list
+-Closed: bool
+%% Представляет метаданные из YAML Front Matter
+}
+
+class Blackfriday {
+<<library>>
++Run(content: bytes) bytes
+%% Внешняя библиотека для конвертации Markdown в HTML
+}
+
+%% Взаимодействие между классами
+
+Main --> Config : Использует
+Main --> Converter : Инициализирует
+Config --> Converter : Конфигурирует
+Converter --> FrontMatter : Парсит
+Converter --> Blackfriday : Конвертирует
+Converter --> logrus : Логирует процессы

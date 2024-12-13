@@ -1,0 +1,30 @@
+flowchart TD
+A[Start] --> B[Load Configuration]
+B --> C[Read config.yaml]
+C --> D[Initialize Logger]
+D --> E[Initialize Converter]
+E --> F[Scan Source Directory]
+F --> G{Markdown Files Found?}
+G -->|Yes| H[Process Each Markdown File]
+G -->|No| I[Log: No Files Found]
+H --> J[Read Markdown File]
+J --> K[Parse YAML Front Matter]
+K --> L{Is Conversion Needed?}
+L -->|Yes| M[Convert Markdown to HTML]
+L -->|No| N[Log: File Up-to-date, Skipping]
+M --> O[Embed Metadata in HTML]
+O --> P[Write HTML File to Destination]
+P --> Q[Log: File Converted Successfully]
+Q --> H
+N --> H
+H --> R[All Files Processed]
+R --> S[End]
+I --> S
+
+%% Styling
+classDef startEnd fill:#f9f,stroke:#333,stroke-width:2px;
+class A,S startEnd;
+classDef process fill:#bbf,stroke:#333,stroke-width:2px;
+class B,C,D,E,F,H,J,K,M,O,P,Q,R process;
+classDef decision fill:#fcf,stroke:#333,stroke-width:2px;
+class G,I,L,N decision;
