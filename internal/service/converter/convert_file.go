@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/russross/blackfriday/v2"
 	"gopkg.in/yaml.v3"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,6 +47,21 @@ func (c *Converter) ConvertFile(filePath, srcDir, destDir string) error {
 	// Замена расширения на .html с сохранением названия исходного файла
 	htmlFileName := fmt.Sprintf("%s.html", filepath.Base(relPath[:len(relPath)-len(filepath.Ext(relPath))]))
 	htmlFilePath := filepath.Join(destDir, htmlFileName)
+
+	// Проверка существования HTML-файла
+	if info, err := os.Stat(htmlFilePath); err == nil {
+		// Получение времени последнего изменения исходного файла
+		srcInfo, err := os.Stat(filePath)
+		if err != nil {
+			return fmt.Errorf("не удалось получить информацию о исходном файле: %v", err)
+		}
+
+		// Сравнение времени модификации
+		if !srcInfo.ModTime().After(info.ModTime()) {
+			log.Printf("Файл не изменился, пропуск конвертации: %s", filePath)
+			return nil
+		}
+	}
 
 	// Запись HTML содержимого в файл | Создания файла если не было |Переписывание если был
 	if err := os.WriteFile(htmlFilePath, htmlContent, 0644); err != nil {

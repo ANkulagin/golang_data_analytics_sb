@@ -269,3 +269,44 @@ date:
 		})
 	}
 }
+
+func TestConvertFile_Success_ExistingHTMLFileNotUpdated(t *testing.T) {
+	sut := NewConverter()
+
+	srcDir, err := os.MkdirTemp("", "src_dir")
+	require.NoError(t, err)
+	destDir, err := os.MkdirTemp("", "dest_dir")
+	require.NoError(t, err)
+
+	defer func() {
+		_ = os.RemoveAll(srcDir)
+		_ = os.RemoveAll(destDir)
+	}()
+
+	// Создаём исходный md-файл
+	mdPath := filepath.Join(srcDir, "test.md")
+	content := "# Initial Content"
+	require.NoError(t, os.WriteFile(mdPath, []byte(content), 0644))
+
+	// Первый вызов ConvertFile для генерации HTML
+	err = sut.ConvertFile(mdPath, srcDir, destDir)
+	require.NoError(t, err)
+
+	htmlPath := filepath.Join(destDir, "test.html")
+	require.FileExists(t, htmlPath)
+
+	// Запоминаем время модификации HTML
+	infoBefore, err := os.Stat(htmlPath)
+	require.NoError(t, err)
+	modTimeBefore := infoBefore.ModTime()
+
+	// Второй вызов ConvertFile без изменений исходного файла
+	err = sut.ConvertFile(mdPath, srcDir, destDir)
+	require.NoError(t, err)
+
+	infoAfter, err := os.Stat(htmlPath)
+	require.NoError(t, err)
+	modTimeAfter := infoAfter.ModTime()
+
+	require.Equal(t, modTimeBefore, modTimeAfter)
+}
