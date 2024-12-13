@@ -2,10 +2,13 @@ package main
 
 import (
 	"flag"
+	"os"
+	"path/filepath"
+
 	"github.com/ANkulagin/golang_markdown_converter_sb/internal/config"
 	"github.com/ANkulagin/golang_markdown_converter_sb/internal/service/converter"
-	"log"
-	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -15,6 +18,23 @@ func main() {
 	if err != nil {
 		log.Fatalf("Не удалось загрузить конфигурацию: %v", err)
 	}
+
+	// Настройка уровня логирования
+	level, err := log.ParseLevel(cfg.LogLevel)
+	if err != nil {
+		log.Fatalf("Не удалось установить уровень логирования: %v", err)
+	}
+	log.SetLevel(level)
+
+	// Настройка формата логирования
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+		// Можно добавить другие настройки
+		ForceColors: true,
+	})
+
+	// Настройка вывода логов (можно перенаправить в файл, если нужно)
+	log.SetOutput(os.Stdout)
 
 	// Преобразование относительных путей в абсолютные
 	absSrcDir, err := filepath.Abs(cfg.SrcDir)
@@ -27,8 +47,8 @@ func main() {
 		log.Fatalf("Не удалось определить абсолютный путь для целевой директории: %v", err)
 	}
 
-	log.Printf("Конвертация заметок из %s в %s\n", absSrcDir, absDestDir)
-	log.Printf("Уровень логирования: %s\n", cfg.LogLevel)
+	log.Infof("Конвертация заметок из %s в %s", absSrcDir, absDestDir)
+	log.Infof("Уровень логирования: %s", cfg.LogLevel)
 
 	conv := converter.NewConverter()
 
@@ -36,5 +56,5 @@ func main() {
 		log.Fatalf("Конвертация не удалась: %v", err)
 	}
 
-	log.Println("Конвертация завершена успешно.")
+	log.Info("Конвертация завершена успешно.")
 }

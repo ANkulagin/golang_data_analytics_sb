@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"github.com/russross/blackfriday/v2"
 	"gopkg.in/yaml.v3"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type FrontMatter struct {
@@ -21,10 +22,12 @@ type FrontMatter struct {
 func (c *Converter) ConvertFile(filePath, srcDir, destDir string) error {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
+		log.Errorf("Не удалось прочитать файл %s: %v", filePath, err)
 		return fmt.Errorf("не удалось прочитать файл: %v", err)
 	}
 	fm, mdContent, err := c.splitFrontMatter(content)
 	if err != nil {
+		log.Errorf("Ошибка при разборе FrontMatter для файла %s: %v", filePath, err)
 		return fmt.Errorf("ошибка при разборе FrontMatter: %v", err)
 	}
 
@@ -41,6 +44,7 @@ func (c *Converter) ConvertFile(filePath, srcDir, destDir string) error {
 	// Определение относительного пути к файлу из исходной директории к целевой директории
 	relPath, err := filepath.Rel(srcDir, filePath)
 	if err != nil {
+		log.Errorf("Не удалось определить относительный путь для файла %s: %v", filePath, err)
 		return fmt.Errorf("не удалось определить относительный путь: %v", err)
 	}
 
@@ -53,20 +57,28 @@ func (c *Converter) ConvertFile(filePath, srcDir, destDir string) error {
 		// Получение времени последнего изменения исходного файла
 		srcInfo, err := os.Stat(filePath)
 		if err != nil {
+			log.Errorf("Не удалось получить информацию о исходном файле %s: %v", filePath, err)
 			return fmt.Errorf("не удалось получить информацию о исходном файле: %v", err)
 		}
 
 		// Сравнение времени модификации
 		if !srcInfo.ModTime().After(info.ModTime()) {
-			log.Printf("Файл не изменился, пропуск конвертации: %s", filePath)
+			log.WithFields(log.Fields{
+				"file": filePath,
+			}).Info("Файл не изменился, пропуск конвертации")
 			return nil
 		}
 	}
 
-	// Запись HTML содержимого в файл | Создания файла если не было |Переписывание если был
+	// Запись HTML содержимого в файл | Создание файла если не было | Переписывание если был
 	if err := os.WriteFile(htmlFilePath, htmlContent, 0644); err != nil {
+		log.Errorf("Не удалось записать HTML файл %s: %v", htmlFilePath, err)
 		return fmt.Errorf("не удалось записать HTML файл: %v", err)
 	}
+
+	log.WithFields(log.Fields{
+		"file": htmlFilePath,
+	}).Info("HTML файл успешно записан")
 
 	return nil
 }
@@ -85,5 +97,4 @@ func (c *Converter) splitFrontMatter(content []byte) (*FrontMatter, []byte, erro
 	}
 
 	return &fm, parts[2], nil
-
 }
